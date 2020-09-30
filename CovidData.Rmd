@@ -1,0 +1,103 @@
+```{r}
+library(tidyverse)
+usCovid = read.csv('~/Downloads/covidus/dailyState.csv')
+populationDensity <- read_csv("~/Downloads/popDensity.csv")
+stateAbbv <- read_csv("~/Downloads/state_abbv.csv")
+popDensity <- data.frame("State" = populationDensity['State etc.'],
+                                "populationDensity" = populationDensity['Population density_2'], "Population" = populationDensity['Population_1'])
+
+colnames(popDensity)[1] <-"State"
+colnames(popDensity)[2] <-"Density"
+colnames(popDensity)[3] <-"Population"
+colnames(stateAbbv)[1] <-"State"
+densityData <- left_join(popDensity, stateAbbv, by = "State")
+
+colnames(densityData)[5] <-"state"
+usCovid <- left_join(usCovid, densityData, by = "state" )
+usCovid$Population<- as.numeric(gsub(",","",usCovid$Population))
+```
+
+
+```{r}
+findData <- function(stateName) {
+  df <- usCovid %>% filter(state == stateName)
+  df <- df[order(df$date), ]
+  
+  count <- 1
+  for (i in 1:nrow(df)) {
+  df$weekNum[i] <- count
+  if (i %% 7 == 0) {
+  count <- count + 1
+  }
+  
+  }
+  
+  df <-
+  df %>% group_by(weekNum, state, Population) %>% summarise(
+  posIncrease = sum(abs(positiveIncrease)),
+  negIncrease = sum(abs(negativeIncrease)),
+  death = max(death),
+  posPercent = (sum(abs(positiveIncrease)) / sum(abs(totalTestResultsIncrease))) * 100,
+  negPercent = (sum(abs(negativeIncrease)) / sum(abs(totalTestResultsIncrease))) *
+  100,
+  Density = max(Density),
+  deathRatePerMil = round((max(death) / max(Population)) * 1000000
+  ),
+  testIncrease = sum(abs(totalTestResultsIncrease)), increasePerMil=
+    sum(abs(positiveIncrease)) / max(Population) * 1000000)
+  
+  df[is.na(df)] <- 0
+  df <- ungroup(df)
+
+# maxWeek <- which.max(df$posIncrease)
+# 
+#   peakDecrease <- df[(maxWeek+1):nrow(df),] %>% group_by(state) %>% summarise(averagePostPeak = mean(posIncrease))
+#   
+#   x <- max(df$posIncrease) - peakDecrease$averagePostPeak
+#   y <- x/max(df$posIncrease)
+#   
+#   
+#   peakDecrease$peakWeek <- max(df$posIncrease)
+#   peakDecrease$DecreasePercent <- y
+#   peakDecrease$deaths <- max(df$death)
+  
+  return (df[3:nrow(df),])
+}
+
+
+compileDF <- function(data) {
+  newDF <- findData(data$state[1])
+  for (i in unique(data$state)) {
+    df <- findData(i)
+        newDF <- newDF %>% add_row(
+        weekNum = df$weekNum,
+        state = df$state,
+        Population = df$Population,
+        posIncrease = df$posIncrease,
+        negIncrease = df$negIncrease,
+        death = df$death,
+        posPercent = df$posPercent,
+        negPercent = df$negPercent,
+        Density = df$Density,
+        deathRatePerMil = df$deathRatePerMil,
+        testIncrease = df$testIncrease,
+        increasePerMil = df$increasePerMil
+        
+        )
+    
+      
+    }
+  return (newDF)
+  }
+
+finalDF <- compileDF(usCovid)
+
+finalDF <- drop_na(finalDF)
+
+```
+
+
+
+
+
+
