@@ -1,0 +1,79 @@
+
+```{r}
+library(tidyverse)
+library(gganimate)
+filepath <- "~/Downloads/gun-violence-data_01-2013_03-2018.csv"
+gun <- read_delim(filepath,delim = ',')
+gun <- gun.violence.data_01.2013_03.2018
+nrow(gun)
+nrow(gun%>%drop_na)
+
+guns <- gun %>% select(date,state,n_killed,n_injured,gun_type,participant_gender,participant_age_group) 
+
+# Process datetime
+# reference: datetime.R
+guns <- guns %>% 
+  mutate(year=format(date,"%Y")) %>%
+  mutate(month=format(date,"%m")) %>%
+  mutate(day=format(date,"%d"))
+
+unique(guns$year)
+unique(guns$month)
+length(unique(guns$day))
+
+#age and gender
+unique(gun$participant_age_group)
+unique(gun$participant_age)
+unique(gun$participant_gender)
+
+head(gun$participant_age)
+```
+
+```{r}
+
+#function: parse a gender string and return two gender counts
+parse_gender <- function(gender) {
+  gcount <- c(0,0)
+  gs <- str_split(gender, "\\|", simplify=TRUE)
+  for(g in gs){
+    if(!is.na(g) && grepl("Female", g)==TRUE)
+      gcount[1] <- gcount[1]+1
+    else if(!is.na(g) && grepl("Male",g)==TRUE)
+      gcount[2] <- gcount[2]+1
+      
+  }
+    return(gcount)
+}
+
+#transforms dataframe by adding columns for MaleTotal/FemaleTotal
+transformGender <- function(gender,dataframe) {
+  dataframe$FemaleTotal <- 0
+  dataframe$MaleTotal <- 0
+  count <- 0
+    for (h in gender){
+      gs <- str_split(h, "\\|", simplify=TRUE)
+      count <- count + 1
+      for(g in gs){
+          if(!is.na(g) && grepl("Female", g)==TRUE)
+            dataframe$FemaleTotal[count] = dataframe$FemaleTotal[count] + 1
+          else if(!is.na(g) && grepl("Male",g)==TRUE)
+            dataframe$MaleTotal[count] = dataframe$MaleTotal[count] + 1
+            
+        }}
+    return (dataframe)
+  }
+  
+genderCountDB <- transformGender(guns$participant_gender,guns)
+
+#graphinfo to show sum of all per year 
+graphInfo <- genderCountDB %>% select(year,FemaleTotal) %>% filter(FemaleTotal <10) %>% group_by(year) %>% summarise(femaleCT = sum(FemaleTotal))
+
+#ggplot for showing Female totals by year
+ggplot(genderCountDB %>% filter(FemaleTotal < 10), aes(x=year, y=FemaleTotal, colour = FemaleTotal)) + 
+ geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.2) + geom_point(alpha = 0.2)
+
+  
+
+
+```
+
