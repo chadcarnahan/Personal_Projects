@@ -1,0 +1,85 @@
+
+```{r}
+library(tidyverse)
+
+
+#data frame to find data about deaths depending on vehicle 
+averageAcc <- data %>% 
+  select(yearVeh, yearacc, injSeverity, dead) %>% 
+  group_by(yearVeh) %>% drop_na() %>%
+  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+
+ # Make data frame to find the death and severity when using or not using safety devices  
+
+safetyDeaths <- data %>% 
+  select(airbag, seatbelt, injSeverity, dead) %>% 
+  group_by(airbag,seatbelt) %>% drop_na() %>% filter(injSeverity <= 5) %>%
+  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+
+#DVCAT dataframe 
+DVCATData <- data %>% 
+  select(dvcat,frontal, injSeverity, dead) %>% 
+  group_by(dvcat,frontal) %>% drop_na() %>% filter(injSeverity <= 5) %>%
+  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+
+DVCATData2 <- data %>% 
+  select(dvcat,frontal, injSeverity, dead, airbag, seatbelt) %>% 
+  group_by(dvcat,frontal,seatbelt,airbag) %>% drop_na() %>% filter(injSeverity <= 5) %>%
+  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT2 = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+
+# data based on age/weight
+averageDemo <- data %>% 
+  select(yearacc, injSeverity, dead,weight,sex,occRole,ageOFocc) %>% 
+  group_by(yearacc,occRole) %>% drop_na() %>%
+  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100)
+
+#Deaths By Vehicle Year
+
+accidentByVehicleYearDeath <- ggplot(averageAcc, aes(x = yearVeh, y=deadPCT)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
+
+accidentByVehicleYearSev <- ggplot(averageAcc, aes(x = yearVeh, y=avgSev)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
+
+ accidentByVehicleYearDeath
+ accidentByVehicleYearSev
+  #bar graph for safety death 
+safetyGraphDeath <- ggplot(safetyDeaths, aes(x = airbag, y = deadPCT)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+
+safetyGraphSeverity <- ggplot(safetyDeaths, aes(x = airbag, y = avgSev)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+
+safetyGraphSeverity
+safetyGraphDeath
+
+#bar graph for DVCAT death rates
+  DVCATGraph <- ggplot(DVCATData, aes(x = dvcat, y = deadPCT)) +
+     geom_bar(stat = "identity") + facet_grid(~frontal)
+  DVCATGraph
+  
+  DVCATGraph2 <- ggplot(DVCATData2, aes(x = dvcat, y = deadPCT2)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+  DVCATGraph2
+  
+  
+  
+  #age death data
+  
+  deathByRole <- ggplot(averageDemo, aes(x = occRole , y=deadPCT)) +
+         geom_bar(stat = "identity")
+  deathByRole
+ggsave("VehicleYear.jpg")
+  
+  
+  
+  
+```
+  
+```{r}
+
+```
+  
+  
+
+  
