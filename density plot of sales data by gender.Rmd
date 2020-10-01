@@ -1,0 +1,60 @@
+```{r}
+
+univarPlots <- function (x){
+  # set up a matrix layout for multiple plots
+  mat <- rbind(1:3, 4:6)
+  layout(mat)
+  
+  plot(x, main='scatter plot')
+  hist(x, main="frequency")
+  boxplot(x, main='boxplot')
+  
+  dotchart(x, main='dot chart')
+  rug(x)
+  
+  x.density <- density(x)
+  plot(x.density, main="density")
+  
+  polygon(x.density, col="lightblue", border="black")
+  plot(ecdf(x),main='empirical CDF')
+  
+  #reset plot layout
+  layout(c(1,1))
+}
+
+```
+
+
+```{r}
+library(tidyverse)
+data <- read_delim("https://www.iun.edu/~cisjw/ds/files/data/yearly_sales.csv",delim=",")
+
+
+x <- rnorm(100, mean=0, sd=1) 
+univarPlots(data$sales_total)
+
+
+
+#After around $2000 most orders starts to fall off 
+#Most orders occur ~$500 or less range 
+#There really are no gaps or spikes just orders slowly falling off as price gets high
+
+
+
+
+```
+
+
+```{r}
+#Just sales_total
+data %>% 
+  ggplot() +
+  geom_histogram(aes(x=sales_total))
+
+#sales_total with gender too not sure which you wanted 
+sales %>% 
+  ggplot() +
+  geom_histogram(aes(x=sales_total,fill=gender)) +
+  facet_grid(rows = vars(gender))
+```
+
