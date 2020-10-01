@@ -1,0 +1,70 @@
+```{r}
+library(tidyverse)
+library(dplyr)
+
+#load dataset
+url <- "https://cisjw.sitehost.iu.edu/ds/data/bank_data/bank_data_sample.csv"
+raw <- read_delim(url,delim=",")
+#turn into factor because works better with predictor
+raw <-raw %>% mutate_all(as.factor)
+colnames(raw) <- tolower(colnames(raw))
+#set seed for randomizing data 
+set.seed(100)
+
+#seperate data by yes and no
+yesCase <- raw %>% filter(subscribed == "yes")
+noCase <- raw %>% filter(subscribed == "no")
+
+#reduce number of no rows to be the same as yes rows also shuffle using sample
+noCase <- sample(noCase[1:nrow(yesCase),])
+
+#shuffle data again otherwise it'll be all yes then all no 
+#also use rbind to bind by row
+data <- rbind(noCase,yesCase)
+rows <- sample(nrow(data))
+data <- data[rows, ]
+
+#create ratio, round, then find reminder for test set
+ratio <- round(nrow(data) * .8)
+train <- data[1:ratio,]
+test <- data[ratio :nrow(data),]
+
+#end up with 51% yes because dataset is odd number
+nrow(train%>% filter(subscribed=="yes"))/nrow(train)
+
+#load naive bayes and run model
+library(e1071)
+model <- naiveBayes(train %>% select(-subscribed), train$subscribed, laplace=0.1)
+
+#run prediction and find performance
+prediction <- predict(model,test,type="class")
+library(caret)
+performance <- caret::confusionMatrix(prediction, test$subscribed)
+performance
+```
+
+```{r}
+
+#run loop to find if laplace smoothing improves accuracy
+specificity <- c()
+laplace <- seq(0,1,0.05)
+for (p in laplace) {
+  model <- naiveBayes(x=train%>%select(-subscribed), y=train$subscribed, laplace=p)
+  prediction <- predict(model,test,type="class")
+  performance <- caret::confusionMatrix(prediction, test$subscribed)
+  specificity <- c(specificity,performance$byClass["Specificity"])
+  print(p)
+}
+
+max(specificity)
+laplace[which.max(specificity)]
+#plot data
+ggplot(data=tibble(laplace,specificity), mapping = aes(x=laplace,y=specificity)) + 
+  geom_line() + geom_point() + theme_minimal()
+
+#data has no benefit from smoothing
+
+
+
+```
+
