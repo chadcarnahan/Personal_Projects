@@ -1,0 +1,214 @@
+```{r}
+library(NBAr)
+library(dplyr)
+
+```
+
+
+```{r}
+#dataframes for offensive features 
+postOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Postup",
+              Names = "offensive",
+              SeasonType = "Reg")
+transitionOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Transition",
+              Names = "offensive",
+              SeasonType = "Reg")
+isolationOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Isolation",
+              Names = "offensive",
+              SeasonType = "Reg")
+PRBallHandleOffense <-
+  getPlaytype(2018,
+              "Player",
+              "PRBallHandler",
+              Names = "offensive",
+              SeasonType = "Reg")
+PrRollOffense <-
+  getPlaytype(2018,
+              "Player",
+              "PRRollman",
+              Names = "offensive",
+              SeasonType = "Reg")
+spotupOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Spotup",
+              Names = "offensive",
+              SeasonType = "Reg")
+handoffOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Handoff",
+              Names = "offensive",
+              SeasonType = "Reg")
+cutOffense <-
+  getPlaytype(2018, "Player", "Cut", Names = "offensive", SeasonType = "Reg")
+offScreenOffense <-
+  getPlaytype(2018,
+              "Player",
+              "OffScreen",
+              Names = "offensive",
+              SeasonType = "Reg")
+OffRebound <-
+  getPlaytype(2018,
+              "Player",
+              "OffRebound",
+              Names = "offensive",
+              SeasonType = "Reg")
+miscOffense <-
+  getPlaytype(2018,
+              "Player",
+              "Misc",
+              Names = "offensive",
+              SeasonType = "Reg")
+
+
+offenseList <- c(postOffense,transitionOffense,isolationOffense,PRBallHandleOffense,PrRollOffense,
+                 spotupOffense,handoffOffense,cutOffense,OffRebound,miscOffense)
+
+
+
+```
+
+#Create functions to fill in missing values and rename columns
+```{r}
+###This will Make all dfs equal number of rows replacing any discrepancies with 0s,
+
+
+fillMissing <- function(DF,pList) {
+  #Create template of data extracted
+  library(tidyverse)
+  new <- data.frame(PlayerID = DF$PLAYERIDSID, FirstName = DF$PLAYERFIRSTNAME, 
+                     LastName = DF$PLAYERLASTNAME, POSSG = DF$POSSG, TIME = DF$TIME, FGAG = DF$FGAG)
+  #Loop through rows and any playerID not found in Spotup is then appended with 0s 
+  for(k in pList){
+    REF <- as.data.frame(k)
+    for (i in 1:nrow(REF)) {
+      if (REF[i,"PLAYERIDSID"] %in% new$PlayerID == FALSE){
+      #IF TRUE WANT TO ADD NEW ROW WITH PLAYERID,firstname,lastname FOLLOWED BY 0s for values
+        dummy <- data.frame(PlayerID = REF$PLAYERIDSID[i], FirstName =
+                          REF$PLAYERFIRSTNAME[i],LastName = REF$PLAYERLASTNAME[i],
+                          POSSG = 0, TIME = 0, FGAG = 0)
+        new <- rbind(new,dummy)
+      }  }  }
+  new <- arrange(new, new$PlayerID)
+  return (new)
+  }
+
+#rename DFCols so that column names are unique 
+
+renameDFCol <- function(DF,name) {
+  columnName <- c("POSSG","TIME","FGAG")
+  new <- data.frame(DF$POSSG, DF$TIME, DF$FGAG)
+  for (i in 1:ncol(new)) {
+    colnames(new)[i] <- paste(name, columnName[i])
+  }
+  
+  return(new)
+}
+
+```
+
+
+
+
+```{r}
+#Create list of offense DFs and playtypenames that will be used with functions created above 
+offenseList <- list(postOffense,transitionOffense,isolationOffense,PRBallHandleOffense,PrRollOffense,spotupOffense,handoffOffense,cutOffense,OffRebound,miscOffense)
+playTypeNames <- c("post","transition","isolation","PRBallHandler","PRRollMan","spotup","handOff","cut","OffRebound","misc")
+
+#made a template that has playerID/firstName/LastName
+playerInfo <- read_csv("~/downloads/playerIdentifierInfo.csv")
+
+#use template to start off list that will receive values in for loop
+l <- playerInfo[2:4] 
+l <-arrange(l, l$post.PlayerID)
+
+#use for loop to create a list that contains updated values needed for correlation matrix
+k <- 0
+for (k in 1:length(offenseList)) {
+  print(k)
+  
+  bb <- fillMissing(offenseList[[k]],offenseList)
+  gg <- renameDFCol(bb,playTypeNames[k])
+  
+  l <- c(l,gg)
+}
+
+#create dataframe that will be used 
+beta <- as.data.frame(l)
+
+#rename columns 1/2/3
+colnames(beta)[1] <- "PlayerID"
+colnames(beta)[2] <- "FirstName"
+colnames(beta)[3] <- "LastName"
+
+
+```
+
+```{r}
+row.names(beta) <- paste(beta$FirstName,beta$LastName)
+
+corrstuff <- beta[4:33]
+
+#Takes all 449 rows and all 30 variables 
+x <- normalize.Dataset(corrstuff)
+
+#find distance score for every player compared to every player
+library("factoextra")
+dist.cor <- get_dist(x, method = "pearson")
+# Display a subset
+corrMatrix <- (as.matrix(dist.cor))
+
+#turn into dataframe and normalize dataset
+finalCorr <- data.frame(corrMatrix)
+finalCorr <- normalize.Dataset(finalCorr)
+
+#do 1 - score so that higher score = higher similarity
+finalCorr <- apply(finalCorr, 1, function(x) 1 - x)
+
+#turn into tibble keep rownames as IDs
+corrTable <- as.tibble(finalCorr, rownames="id")
+
+#write to csv
+write.csv(corrTable,"~/Downloads/corrChart.csv", row.names = TRUE)
+corrTable[,c("LeBron James","id")]
+```
+
+```{r}
+#Create shiny app to display as table, right now could only figure out how to get it to work by subsetting in render data table individually, in future would like to figure out how to use a prompt that allows the subset data targets to be inputted by user. Or to be able to search by columns 
+library(shiny)
+if (interactive()) {
+  # pass a callback function to DataTables using I()
+  shinyApp(
+    ui = fluidPage(
+      fluidRow(
+        column(12,
+               dataTableOutput('table')
+        )
+      )
+    ),
+    server = function(input, output) {
+      output$table <- renderDataTable(corrTable[,c("LeBron James","id")],
+                                      options = list(target = "column",
+                                        pageLength = 20,
+                                        initComplete = I("function(settings, json) {alert('Done.');}")
+                                      )
+                                     
+      )
+    }
+  )
+}
+
+```
+
+
+
