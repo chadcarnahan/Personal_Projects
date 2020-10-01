@@ -1,0 +1,30 @@
+```{r}
+library(tidyverse)
+library(mdsr)
+MLB <- MLB_teams
+
+# Basic scatter plot
+
+
+library(data.table)
+avgWPct <- setDT(MLB)[, mean(WPct), by = teamID]
+avgPayroll <- setDT(MLB)[, mean(payroll), by = teamID]
+
+
+averageMLB <- data.frame(teamID = avgPayroll$teamID, averagePayroll = avgPayroll$V1,
+                         averageWinPercent = avgWPct$V1)
+options(scipen=10000)
+
+
+averageGraph <- ggplot(averageMLB, aes(x=averageWinPercent, y=averagePayroll, color = teamID)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) + 
+  geom_text(size = 2.5,label=averageMLB$teamID, color ="white")
+  
+totalGraph <- ggplot(MLB_teams, aes(x=WPct, y=payroll, color = teamID)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) + 
+  geom_text(size = 2.5,label=MLB_teams$teamID, color ="white")
+
+averageGraph
+totalGraph
+```
+
