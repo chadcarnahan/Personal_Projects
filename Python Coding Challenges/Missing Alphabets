@@ -1,0 +1,44 @@
+Challenge Explanation:
+
+Task
+Given string s, which contains only letters from a to z in lowercase.
+
+A set of alphabet is given by abcdefghijklmnopqrstuvwxyz.
+
+2 sets of alphabets mean 2 or more alphabets.
+
+Your task is to find the missing letter(s). You may need to output them by the order a-z. It is possible that there is more than one missing letter from more than one set of alphabet.
+
+If the string contains all of the letters in the alphabet, return an empty string ""
+
+CODE:
+
+def missing_alphabets(s):
+    alphabetArray = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+                    'p','q','r','s','t','u','v','w','x','y','z']
+    l = []
+    
+    for element in s:
+        for i in alphabetArray:
+            if element == i:
+                l.append(element)
+                
+    freqNum = max(set(l), key = l.count)
+    aNum = s.count(freqNum)
+    
+    missing = []
+    s = list(s)
+    for k in range(0,aNum):
+        for i in alphabetArray:
+            if i not in s:
+                missing.extend(i)
+            if i in s:
+                s.remove(i)
+                
+    missing = sorted(missing) 
+    if not missing:
+        return ('') 
+    if missing:
+        return (''.join(missing))
+
+    print(alphabetArray)
