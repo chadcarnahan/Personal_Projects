@@ -1,84 +1,116 @@
 
-```{r}
+---
+title: "Traffic Death Exploratory Analysis"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    collapse: yes
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    slidy_presentation:
+    duration: 60
+    footer: '2020'
+#  pdf_document:
+#    number_sections: true
+#    toc: yes
+#    toc_depth: '3'
+---
+<!-- 
+  R -e 'rmarkdown::render(input="cut.Rmd",output_format = "slidy_presenation")'  
+-->
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=TRUE, collapse=FALSE, echo = TRUE, warning = FALSE, message = FALSE, tidy=TRUE,tidy.opts=list(width.cutoff=50))
+library(gganimate)
 library(tidyverse)
+data <- read.csv('~/Downloads/nassCDS.csv')
+library(tidyverse)
+```
 
-
-#data frame to find data about deaths depending on vehicle 
+#Create dataframe to find deaths by vehicle year
+```{r}
 averageAcc <- data %>% 
   select(yearVeh, yearacc, injSeverity, dead) %>% 
   group_by(yearVeh) %>% drop_na() %>%
-  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
 
- # Make data frame to find the death and severity when using or not using safety devices  
+```
 
+#Create dataframe to find deaths by safety device usage
+```{r}
 safetyDeaths <- data %>% 
   select(airbag, seatbelt, injSeverity, dead) %>% 
   group_by(airbag,seatbelt) %>% drop_na() %>% filter(injSeverity <= 5) %>%
-  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
 
-#DVCAT dataframe 
+```
+
+#Create dataframe to find deaths by DVCat rating
+```{r}
 DVCATData <- data %>% 
   select(dvcat,frontal, injSeverity, dead) %>% 
   group_by(dvcat,frontal) %>% drop_na() %>% filter(injSeverity <= 5) %>%
-  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
 
 DVCATData2 <- data %>% 
   select(dvcat,frontal, injSeverity, dead, airbag, seatbelt) %>% 
   group_by(dvcat,frontal,seatbelt,airbag) %>% drop_na() %>% filter(injSeverity <= 5) %>%
-  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT2 = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT2 = deadCount /(deadCount + aliveCount) *100) %>% filter(aliveCount + deadCount > 50)
+```
 
-# data based on age/weight
+#Create dataframe to find deaths by demographic
+```{r}
 averageDemo <- data %>% 
   select(yearacc, injSeverity, dead,weight,sex,occRole,ageOFocc) %>% 
   group_by(yearacc,occRole) %>% drop_na() %>%
-  summarise(avgSev = mean(injSeverity), deadCount = count(dead == "dead"),aliveCount = count(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100)
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100)
 
-#Deaths By Vehicle Year
-
-accidentByVehicleYearDeath <- ggplot(averageAcc, aes(x = yearVeh, y=deadPCT)) +
-  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
-
-accidentByVehicleYearSev <- ggplot(averageAcc, aes(x = yearVeh, y=avgSev)) +
-  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
-
- accidentByVehicleYearDeath
- accidentByVehicleYearSev
-  #bar graph for safety death 
-safetyGraphDeath <- ggplot(safetyDeaths, aes(x = airbag, y = deadPCT)) +
-     geom_bar(stat = "identity") + facet_grid(~seatbelt)
-
-safetyGraphSeverity <- ggplot(safetyDeaths, aes(x = airbag, y = avgSev)) +
-     geom_bar(stat = "identity") + facet_grid(~seatbelt)
-
-safetyGraphSeverity
-safetyGraphDeath
-
-#bar graph for DVCAT death rates
-  DVCATGraph <- ggplot(DVCATData, aes(x = dvcat, y = deadPCT)) +
-     geom_bar(stat = "identity") + facet_grid(~frontal)
-  DVCATGraph
-  
-  DVCATGraph2 <- ggplot(DVCATData2, aes(x = dvcat, y = deadPCT2)) +
-     geom_bar(stat = "identity") + facet_grid(~seatbelt)
-  DVCATGraph2
-  
-  
-  
-  #age death data
-  
-  deathByRole <- ggplot(averageDemo, aes(x = occRole , y=deadPCT)) +
-         geom_bar(stat = "identity")
-  deathByRole
-ggsave("VehicleYear.jpg")
-  
-  
-  
-  
 ```
-  
+
+#Dataframe for age/weight
 ```{r}
-
+averageDemo <- data %>% 
+  select(yearacc, injSeverity, dead,weight,sex,occRole,ageOFocc) %>% 
+  group_by(yearacc,occRole) %>% drop_na() %>%
+  summarise(avgSev = mean(injSeverity), deadCount = sum(dead == "dead"),aliveCount = sum(dead == "alive"), deadPCT = deadCount /(deadCount + aliveCount) *100)
 ```
+
+#Graphs for severity/death based on vehicle year
+```{r}
+ggplot(averageAcc, aes(x = yearVeh, y=deadPCT)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
+
+ggplot(averageAcc, aes(x = yearVeh, y=avgSev)) +
+  theme_dark(base_size = 10) + geom_point(size=2, shape=15) 
+```
+
+#Graphs for severity/death based on safety usage
+```{r}
+ggplot(safetyDeaths, aes(x = airbag, y = deadPCT)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+
+ggplot(safetyDeaths, aes(x = airbag, y = avgSev)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+```
+
+#Graphs for severity/death based on DVCat ratings
+```{r}
+ggplot(DVCATData, aes(x = dvcat, y = deadPCT)) +
+     geom_bar(stat = "identity") + facet_grid(~frontal)
+
+ggplot(DVCATData2, aes(x = dvcat, y = deadPCT2)) +
+     geom_bar(stat = "identity") + facet_grid(~seatbelt)
+```
+
+#Graph for severity/death based on occupant role 
+```{r}
+ggplot(averageDemo, aes(x = occRole , y=deadPCT)) +
+         geom_bar(stat = "identity")
+```
+  
   
   
 
