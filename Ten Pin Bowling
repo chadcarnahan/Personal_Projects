@@ -1,0 +1,49 @@
+Ten-Pin Bowling
+In the game of ten-pin bowling, a player rolls a bowling ball down a lane to knock over pins. There are ten pins set at the end of the bowling lane. Each player has 10 frames to roll a bowling ball down a lane and knock over as many pins as possible. The first nine frames are ended after two rolls or when the player knocks down all the pins. The last frame a player will receive an extra roll every time they knock down all ten pins; up to a maximum of three total rolls.
+
+The Challenge
+In this challenge you will be given a string representing a player's ten frames. It will look something like this: 'X X 9/ 80 X X 90 8/ 7/ 44' (in Java: "X X 9/ 80 X X 90 8/ 7/ 44"), where each frame is space-delimited, 'X' represents strikes, and '/' represents spares. Your goal is take in this string of frames into a function called bowlingScore and return the players total score.
+
+
+CODE: 
+
+def bowling_score(frames):
+    dict = {"0":0, "1":1, "2":2, "3":3, "4":4, "5":5, "6":6 , "7":7, "8":8, "9":9, 
+           "/":10, "X": 10}
+    frames = frames.split(" ")
+    l = []
+    sum = 0
+    for i in range(0,len(frames)-1):
+        if "/" in frames[i]:
+            l.append(10)
+        if "/" not in frames[i] and "X" not in frames[i]:
+            l.append(dict[frames[i][0]] + dict[frames[i][1]])
+        if "X" in frames[i] and len(frames[i]) == 1:
+            l.append(10)
+
+    temp = frames.pop(-1)
+    for i in temp:
+        frames.append(i)
+        l.append(dict[i])
+    
+
+    for i in range(0,len(frames)):
+        if frames[i] == "X" and i < len(frames) - len(temp):
+            if frames[i + 1] == "X":
+                l[i] += l[i + 1]
+                l[i] += dict[frames[i + 2][0]]
+            if frames[i +1] != "X":
+                if len(frames[i + 1]) == 2:
+                    l[i] += l[i + 1]
+                if len(frames[i + 1]) == 1:
+                    if frames[i + 2] == "/":
+                        l[i] += 10
+                    if frames[i +2] != "/":
+                        l[i] += l[i + 1] + l[i+2]
+        if "/" in frames[i] and i < len(frames) - len(temp) :
+            l[i] += dict[frames[i + 1][0]]
+        if "/" in frames[i] and i >= len(frames) - len(temp):
+            l[i] -= l[i - 1]
+    for i in l:
+        sum += i
+    return sum
